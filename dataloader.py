@@ -1,14 +1,83 @@
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-
+import yaml
 import random
 import os
 import numpy as np
 import glob
 import PIL
 from tqdm import tqdm 
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+import torch.optim as optim
+from basic_fcn import *
+from utils import *
 
+def load_config(path, file_name = 'config.yaml'):
+    """
+    Load the configuration from config.yaml.
+    """
+    return yaml.load(open(path + file_name, 'r'), Loader=yaml.SafeLoader)
+
+def get_config_info(config):
+    batch_size = config['batch_size'];
+    n_class = config['n_class'];
+    learning_rate = config['learning_rate']
+    momentum = config['lambda']
+    epochs = config['epochs']
+
+    if (config['loss'] == 'CrossEntropy'):
+        criterion = nn.CrossEntropyLoss();
+        # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html    
+
+    if (config['processor'] == 'cuda'):    
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); 
+        # determine which device to use (gpu or cpu)
+    else:
+        device = torch.device("cpu");
+    
+    fname = '_' + config['model'] + '_' + config['transform'] + '_' + config['loss'] \
+        + '_' + 'lr' + str(config['learning_rate'])
+    
+    tname = '\n'+ config['model'] + ' ' + config['transform'] + '\n' + \
+        config['loss'] + ' ' + 'learning rate : ' + str(config['learning_rate'])
+
+    return batch_size, n_class, device, fname, tname, \
+        criterion, epochs, learning_rate, momentum
+
+def Init(config):
+    # TODO: Some missing values are represented by '__'. You need to fill these up.
+
+    batch_size, n_class, device, __, __, __, __, learning_rate, momentum = \
+        get_config_info(config);
+
+    train_dataset = TASDataset('tas500v1.1',config) 
+    val_dataset = TASDataset('tas500v1.1', config, eval=True, mode='val')
+    test_dataset = TASDataset('tas500v1.1', config, eval=True, mode='test')
+
+
+    train_loader = DataLoader(dataset=train_dataset, batch_size= batch_size, shuffle=True)
+    val_loader = DataLoader(dataset=val_dataset, batch_size= batch_size, shuffle=False)
+    test_loader = DataLoader(dataset=test_dataset, batch_size= batch_size, shuffle=False)
+
+    def init_weights(m):
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+            torch.nn.init.xavier_uniform_(m.weight.data)
+            torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
+
+    
+    if (config['model'] == 'baseline'):
+        cnn_model = FCN(n_class=n_class)
+        cnn_model.apply(init_weights)
+        
+    optimizer = optim.SGD(cnn_model.parameters(), lr=learning_rate, momentum=momentum)
+    # choose an optimizer
+
+    cnn_model = cnn_model.to(device) #transfer the model to the device
+
+    return cnn_model, optimizer, train_loader, val_loader, test_loader
 
 def rgb2int(arr):
     """
@@ -33,10 +102,11 @@ def rgb2vals(color, color2ind):
 
 
 class TASDataset(Dataset):
-    def __init__(self, data_folder, eval=False, mode=None):
+    def __init__(self, data_folder, config, eval=False, mode=None):
         self.data_folder = data_folder
         self.eval = eval
         self.mode = mode
+        self.config=config
 
         # You can use any valid transformations here
 

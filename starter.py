@@ -8,79 +8,22 @@ import torch
 import gc
 import copy
 import yaml
-
-def load_config(path, file_name = 'config.yaml'):
-    """
-    Load the configuration from config.yaml.
-    """
-    return yaml.load(open(path + file_name, 'r'), Loader=yaml.SafeLoader)
-
-
-def Init(config):
-    # TODO: Some missing values are represented by '__'. You need to fill these up.
-
-    batch_size = config['batch_size'];
-    n_class = config['n_class'];
-    learning_rate = config['learning_rate']
-    momentum = config['lambda']
-
-    if (config['loss'] == 'CrossEntropy'):
-        criterion = nn.CrossEntropyLoss();
-        # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
-    
-
-    if (config['processor'] == 'cuda'):    
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); 
-        # determine which device to use (gpu or cpu)
-    else:
-        device = torch.device("cpu");
-
-
-    train_dataset = TASDataset('tas500v1.1') 
-    val_dataset = TASDataset('tas500v1.1', eval=True, mode='val')
-    test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
-
-
-    train_loader = DataLoader(dataset=train_dataset, batch_size= batch_size, shuffle=True)
-    val_loader = DataLoader(dataset=val_dataset, batch_size= batch_size, shuffle=False)
-    test_loader = DataLoader(dataset=test_dataset, batch_size= batch_size, shuffle=False)
-
-    def init_weights(m):
-        if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-            torch.nn.init.xavier_uniform_(m.weight.data)
-            torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
-
-    
-    if (config['model'] == 'baseline'):
-        cnn_model = FCN(n_class=n_class)
-        cnn_model.apply(init_weights)
-        
-    optimizer = optim.SGD(cnn_model.parameters(), lr=learning_rate, momentum=momentum)
-    # choose an optimizer
-
-    cnn_model = cnn_model.to(device) #transfer the model to the device
-
-    return cnn_model, device, optimizer, criterion, train_loader, val_loader, test_loader
+import torch
+from depict import *
 
 
 def train(config, cnn_model, optimizer, train_loader, val_loader):
 
-    epochs = config['epochs']
-    if (config['loss'] == 'CrossEntropy'):
-        criterion = nn.CrossEntropyLoss();
-        
 
-    if (config['processor'] == 'cuda'):    
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); 
-        # determine which device to use (gpu or cpu)
-    else:
-        device = torch.device("cpu");
+    __, __, device, fname, tname, \
+        criterion, epochs, __, __ = get_config_info(config)
 
-    fname = '_' + config['model'] + '_' + config['transform'] + '_' + config['loss'] \
-        + '_' + 'lr' + str(config['learning_rate'])
-    
     best_iou_score = 0.0
     
+    iou_list=[];
+    pixel_list=[];
+    loss_list=[];
+
     for epoch in range(epochs):
         ts = time.time()
         for iter, (inputs, labels) in enumerate(train_loader):
@@ -108,28 +51,29 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         
         
-        current_miou_score = val(config, epoch, cnn_model, val_loader)
+        current_miou_score, current_pixel_acc, current_loss = val(config, epoch, cnn_model, val_loader)
         
+        iou_list.append(current_miou_score)
+        pixel_list.append(current_pixel_acc)
+        loss_list.append(current_loss)
+
         if current_miou_score > best_iou_score:
             best_iou_score = current_miou_score
             file_name = './model/mlp' + fname + '.pth';
             torch.save(cnn_model.state_dict(), file_name);
             
-    
+    acc_pic_name = './img/acc' + fname;
+    loss_pic_name = './img/loss' + fname;
+
+    BasicPlot(loss_list, loss_pic_name, 'epochs', 'loss', 'loss vs epochs' + tname)
+    MultiplePlot([iou_list,pixel_list], acc_pic_name, 'epochs', 'accuracy', \
+        'accuracy vs epochs' + tname, ['IoU', 'pixel accuracy'], ['red', 'green'])
 
 def val(config, epoch, cnn_model, val_loader):
 
-    n_class = config['n_class']
-    if (config['processor'] == 'cuda'):    
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); 
-        # determine which device to use (gpu or cpu)
-    else:
-        device = torch.device("cpu");
+    __, n_class, device, __, __, \
+        criterion, __, __, __ = get_config_info(config)
 
-    if (config['loss'] == 'CrossEntropy'):
-        criterion = nn.CrossEntropyLoss();
-        # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
-    
 
     cnn_model.eval() # Put in eval mode (disables batchnorm/dropout) !
     
@@ -150,7 +94,6 @@ def val(config, epoch, cnn_model, val_loader):
             target = label.long();
             loss = criterion(output, target) #calculate the loss
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
-
             
             pred = torch.argmax(output, axis = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
@@ -165,7 +108,7 @@ def val(config, epoch, cnn_model, val_loader):
 
     cnn_model.train() #DONT FORGET TO TURN THE TRAIN MODE BACK ON TO ENABLE BATCHNORM/DROPOUT!!
 
-    return np.mean(mean_iou_scores)
+    return np.mean(mean_iou_scores), np.mean(accuracy), np.mean(losses)
 
 def test():
     #TODO: load the best model and complete the rest of the function for testing
@@ -176,11 +119,21 @@ def test():
 
 def main(file_name = 'config.yaml'):
     config = load_config("./", file_name)
-    cnn_model, device, optimizer, criterion, train_loader, val_loader, test_loader = Init(config)
+    cnn_model, optimizer, train_loader, val_loader, test_loader = Init(config)
     
-    val(config, 0 , cnn_model, val_loader)  # show the accuracy before training
+    val(config, -1 , cnn_model, val_loader)  # show the accuracy before training
     train(config, cnn_model, optimizer, train_loader, val_loader)
-    test()
+
+
+    fname = '_' + config['model'] + '_' + config['transform'] + '_' + config['loss'] \
+        + '_' + 'lr' + str(config['learning_rate'])
+
+    model_name = './model/mlp' + fname + '.pth';
+
+    cnn_model.load_state_dict(torch.load(model_name))
+    cnn_model.eval();
+
+    val(config, epoch = 'Test', cnn_model = cnn_model, test_loader = test_loader)
     
     # housekeeping
     gc.collect() 

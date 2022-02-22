@@ -1,5 +1,8 @@
 import numpy as np
 import torch
+import torch.optim as optim
+
+
 
 def iou(pred, target, n_classes = 10):
     ious = []
@@ -16,7 +19,6 @@ def iou(pred, target, n_classes = 10):
         if union == 0:
             ious.append(float('nan'))  # If there is no ground truth, do not include in evaluation
         else:
-            
             ious.append( float(intersection / union) )  #complete this
 
     return np.array(ious)
