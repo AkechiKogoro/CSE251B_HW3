@@ -16,7 +16,7 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
 
 
     __, __, device, fname, tname, \
-        criterion, epochs, __, __ = get_config_info(config)
+        criterion, epochs, __, __, early_stop= get_config_info(config)
 
     best_iou_score = 0.0
     
@@ -72,7 +72,7 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
 def val(config, epoch, cnn_model, val_loader):
 
     __, n_class, device, __, __, \
-        criterion, __, __, __ = get_config_info(config)
+        criterion, __, __, __, __ = get_config_info(config)
 
 
     cnn_model.eval() # Put in eval mode (disables batchnorm/dropout) !

@@ -27,6 +27,7 @@ def get_config_info(config):
     learning_rate = config['learning_rate']
     momentum = config['lambda']
     epochs = config['epochs']
+    early_stop = config['early_stop_epoch']
 
     if (config['loss'] == 'CrossEntropy'):
         criterion = nn.CrossEntropyLoss();
@@ -45,12 +46,12 @@ def get_config_info(config):
         config['loss'] + ' ' + 'learning rate : ' + str(config['learning_rate'])
 
     return batch_size, n_class, device, fname, tname, \
-        criterion, epochs, learning_rate, momentum
+        criterion, epochs, learning_rate, momentum, early_stop
 
 def Init(config):
     # TODO: Some missing values are represented by '__'. You need to fill these up.
 
-    batch_size, n_class, device, __, __, __, __, learning_rate, momentum = \
+    batch_size, n_class, device, __, __, __, __, learning_rate, momentum, __ = \
         get_config_info(config);
 
     train_dataset = TASDataset('tas500v1.1',config) 
