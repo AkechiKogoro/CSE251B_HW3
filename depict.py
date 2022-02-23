@@ -8,6 +8,7 @@ This file helps plot different graphs
 def BasicPlot(y, file_name='noname.png',x_text = "", y_text="", title_text="",colour='blue', scale=1, x_shift=0):
     plt.figure();
     x=np.array(range(len(y)))+1+x_shift;  x*=scale;
+    print(len(x));
     plt.plot(x,y,color=colour,linewidth=0.8);
     plt.xlabel(x_text);
     plt.ylabel(y_text);

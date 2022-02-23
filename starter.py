@@ -19,13 +19,15 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
         criterion, epochs, __, __, early_stop= get_config_info(config)
 
     best_iou_score = 0.0
+    pre_iou_score = 0.0
+    num_increase = 0
     
     iou_list=[];
     pixel_list=[];
     loss_list=[];
 
     for epoch in range(epochs):
-        ts = time.time()
+        ts = time.time(); print('\n');
         for iter, (inputs, labels) in enumerate(train_loader):
             # reset optimizer gradients
             optimizer.zero_grad();
@@ -53,6 +55,16 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
         
         current_miou_score, current_pixel_acc, current_loss = val(config, epoch, cnn_model, val_loader)
         
+        if (early_stop > 0):
+            if (current_miou_score < pre_iou_score):
+                num_increase += 1;
+            else:
+                num_increase = 0;
+            
+            if (num_increase > early_stop):
+                print('\n'*3 + 'EARLY STOP !');
+                break;
+
         iou_list.append(current_miou_score)
         pixel_list.append(current_pixel_acc)
         loss_list.append(current_loss)
@@ -62,12 +74,14 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
             file_name = './model/mlp' + fname + '.pth';
             torch.save(cnn_model.state_dict(), file_name);
             
-    acc_pic_name = './img/acc' + fname;
-    loss_pic_name = './img/loss' + fname;
+    acc_pic_name = './img/acc' + fname + '.png';
+    loss_pic_name = './img/loss' + fname + '.png';
 
     BasicPlot(loss_list, loss_pic_name, 'epochs', 'loss', 'loss vs epochs' + tname)
-    MultiplePlot([iou_list,pixel_list], acc_pic_name, 'epochs', 'accuracy', \
+    MultiplePlot([iou_list, pixel_list], acc_pic_name, 'epochs', 'accuracy', \
         'accuracy vs epochs' + tname, ['IoU', 'pixel accuracy'], ['red', 'green'])
+    print('\n');
+
 
 def val(config, epoch, cnn_model, val_loader):
 
@@ -133,7 +147,7 @@ def main(file_name = 'config.yaml'):
     cnn_model.load_state_dict(torch.load(model_name))
     cnn_model.eval();
 
-    val(config, epoch = 'Test', cnn_model = cnn_model, test_loader = test_loader)
+    val(config, epoch = 'Test', cnn_model = cnn_model, val_loader = test_loader)
     
     # housekeeping
     gc.collect() 

@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 import torch.optim as optim
-
-
+import torchvision.transforms.functional as TF
+import random
+import copy
 
 def iou(pred, target, n_classes = 10):
     ious = []
@@ -31,3 +32,22 @@ def pixel_acc(pred, target, n_classes=10):
     total = pred.numel() - torch.sum ( target == n_classes-1);
 
     return float(same/total)
+
+def flip(image, mask):
+    new_mask = copy.deepcopy(np.fliplr(mask))
+    return TF.hflip(image), new_mask
+
+def rotate(config, image, mask, degree = 30):
+    n_class = config['n_class']
+    random.seed();
+    d= float(random.randint(-degree, degree));
+
+    new_image = TF.rotate(image, d, fill = 0)
+
+    new_mask = torch.tensor(mask)
+    new_mask = torch.unsqueeze(new_mask, 0)
+    new_mask = TF.rotate(image, d, fill = n_class - 1)
+    new_mask = torch.squeeze(new_mask, 0)
+    new_mask = new_mask.numpy();
+
+    return new_image, new_mask

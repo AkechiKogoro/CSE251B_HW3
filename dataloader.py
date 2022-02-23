@@ -176,4 +176,14 @@ class TASDataset(Dataset):
         if self.transform:
             image = self.transform(image).float()
 
-        return image, mask
+        if (self.config['transform'] == 'NoTransform'):
+            return image, mask
+        elif (self.config['transform'] == 'Flip'):
+            random.seed();
+            p = random.randint(0,1);
+            if (p == 0):
+                return flip(image, mask)
+            else:
+                return image, mask
+        elif (self.config['transform'] == 'Rotate'):
+            return rotate(self.config, image, mask)
