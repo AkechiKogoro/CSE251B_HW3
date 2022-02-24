@@ -17,7 +17,7 @@ def train(Init, cnn_model, optimizer, train_loader, val_loader):
 
     #__, __, device, fname, tname, \
         #criterion, epochs, __, __, early_stop= get_config_info(config, CE_weight)
-    device, fname, tname, criterion, epochs, early_stop = Init['device'], Init['fname'], \
+    device, fname, tname, criterion, epochs, early_stop = Init['processor'], Init['fname'], \
         Init['tname'], Init['loss'], Init['epochs'], Init['early_stop_epoch'];
 
     best_iou_score = 0.0

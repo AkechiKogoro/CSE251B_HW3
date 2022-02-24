@@ -32,7 +32,6 @@ class FCN(nn.Module):
         self.classifier = nn.Conv2d(32, self.n_class, kernel_size=1)
 
     def forward(self, x):
-
         x1 = self.bnd1(self.relu(self.conv1(x)))
         x2 = self.bnd2(self.relu(self.conv2(x1)))
         x3 = self.bnd3(self.relu(self.conv3(x2)))
