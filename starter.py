@@ -140,8 +140,7 @@ def main(file_name = 'config.yaml'):
     train(Init, cnn_model, optimizer, train_loader, val_loader)
 
 
-    fname = '_' + config['model'] + '_' + config['transform'] + '_' + config['loss'] \
-        + '_' + 'lr' + str(config['learning_rate'])
+    fname = Init['fname']
 
     model_name = './model/mlp' + fname + '.pth';
 

@@ -57,7 +57,7 @@ class Initialization():
         if (self.config['loss'] == 'weightedCrossEntropy'):
             self.CE_weight = aug_weight(train_loader, n_class);
             #self.CE_weight = self.CE_weight.to(device);
-            self.CE_weight = torch.stack(self.CE_weight, 0);
+            #self.CE_weight = torch.stack([self.CE_weight] * n_class, 0);
         
         
         
@@ -85,7 +85,7 @@ class Initialization():
             fname = '_' + self.config['model'] + '_' + self.config['transform'] + '_' + self.config['loss'] \
         + '_' + 'lr' + str(self.config['lr']);
             return fname;
-
+            
         elif (idx == 'tname'):
             tname = '\n'+ self.config['model'] + ' ' + self.config['transform'] + '\n' + \
                 self.config['loss'] + ' ' + 'learning rate : ' + str(self.config['lr']);
