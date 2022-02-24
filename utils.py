@@ -46,7 +46,7 @@ def rotate(config, image, mask, degree = 30):
 
     new_mask = torch.tensor(mask)
     new_mask = torch.unsqueeze(new_mask, 0)
-    new_mask = TF.rotate(image, d, fill = n_class - 1)
+    new_mask = TF.rotate(new_mask, d, fill = n_class - 1)
     new_mask = torch.squeeze(new_mask, 0)
     new_mask = new_mask.numpy();
 

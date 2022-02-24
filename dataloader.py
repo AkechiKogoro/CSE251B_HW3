@@ -57,6 +57,7 @@ class Initialization():
         if (self.config['loss'] == 'weightedCrossEntropy'):
             self.CE_weight = aug_weight(train_loader, n_class);
             #self.CE_weight = self.CE_weight.to(device);
+            self.CE_weight = torch.stack(self.CE_weight, 0);
         
         
         

@@ -14,9 +14,6 @@ from depict import *
 
 def train(Init, cnn_model, optimizer, train_loader, val_loader):
 
-
-    #__, __, device, fname, tname, \
-        #criterion, epochs, __, __, early_stop= get_config_info(config, CE_weight)
     device, fname, tname, criterion, epochs, early_stop = Init['processor'], Init['fname'], \
         Init['tname'], Init['loss'], Init['epochs'], Init['early_stop_epoch'];
 
@@ -105,8 +102,8 @@ def val(Init, epoch, cnn_model, val_loader):
             label = label.to(device) #transfer the labels to the same device as the model's
 
             output = cnn_model(input)
-
             target = label.long();
+
             loss = criterion(output, target) #calculate the loss
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
             
