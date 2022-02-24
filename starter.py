@@ -12,11 +12,13 @@ import torch
 from depict import *
 
 
-def train(config, cnn_model, optimizer, train_loader, val_loader):
+def train(Init, cnn_model, optimizer, train_loader, val_loader):
 
 
-    __, __, device, fname, tname, \
-        criterion, epochs, __, __, early_stop= get_config_info(config)
+    #__, __, device, fname, tname, \
+        #criterion, epochs, __, __, early_stop= get_config_info(config, CE_weight)
+    device, fname, tname, criterion, epochs, early_stop = Init['device'], Init['fname'], \
+        Init['tname'], Init['loss'], Init['epochs'], Init['early_stop_epoch'];
 
     best_iou_score = 0.0
     pre_iou_score = 0.0
@@ -53,7 +55,7 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         
         
-        current_miou_score, current_pixel_acc, current_loss = val(config, epoch, cnn_model, val_loader)
+        current_miou_score, current_pixel_acc, current_loss = val(Init, epoch, cnn_model, val_loader)
         
         if (early_stop > 0):
             if (current_miou_score < pre_iou_score):
@@ -73,6 +75,8 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
             best_iou_score = current_miou_score
             file_name = './model/mlp' + fname + '.pth';
             torch.save(cnn_model.state_dict(), file_name);
+
+    print(f"Best IoU in training is : {best_iou_score}\n")
             
     acc_pic_name = './img/acc' + fname + '.png';
     loss_pic_name = './img/loss' + fname + '.png';
@@ -83,14 +87,11 @@ def train(config, cnn_model, optimizer, train_loader, val_loader):
     print('\n');
 
 
-def val(config, epoch, cnn_model, val_loader):
+def val(Init, epoch, cnn_model, val_loader):
 
-    __, n_class, device, __, __, \
-        criterion, __, __, __, __ = get_config_info(config)
-
-
+    n_class, device, criterion = Init['n_class'], Init['processor'], Init['loss']
     cnn_model.eval() # Put in eval mode (disables batchnorm/dropout) !
-    
+
     losses = []
     mean_iou_scores = []
     accuracy = []
@@ -133,10 +134,13 @@ def test():
 
 def main(file_name = 'config.yaml'):
     config = load_config("./", file_name)
-    cnn_model, optimizer, train_loader, val_loader, test_loader = Init(config)
-    
-    val(config, -1 , cnn_model, val_loader)  # show the accuracy before training
-    train(config, cnn_model, optimizer, train_loader, val_loader)
+
+    Init=Initialization(config);
+
+    cnn_model, optimizer, train_loader, val_loader, test_loader = Init()
+
+    val(Init, -1 , cnn_model, val_loader)  # show the accuracy before training
+    train(Init, cnn_model, optimizer, train_loader, val_loader)
 
 
     fname = '_' + config['model'] + '_' + config['transform'] + '_' + config['loss'] \
@@ -147,7 +151,7 @@ def main(file_name = 'config.yaml'):
     cnn_model.load_state_dict(torch.load(model_name))
     cnn_model.eval();
 
-    val(config, epoch = 'Test', cnn_model = cnn_model, val_loader = test_loader)
+    val(Init, epoch = 'Test', cnn_model = cnn_model, val_loader = test_loader)
     
     # housekeeping
     gc.collect() 

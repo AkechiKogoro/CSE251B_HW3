@@ -21,64 +21,83 @@ def load_config(path, file_name = 'config.yaml'):
     """
     return yaml.load(open(path + file_name, 'r'), Loader=yaml.SafeLoader)
 
-def get_config_info(config):
-    batch_size = config['batch_size'];
-    n_class = config['n_class'];
-    learning_rate = config['learning_rate']
-    momentum = config['lambda']
-    epochs = config['epochs']
-    early_stop = config['early_stop_epoch']
 
-    if (config['loss'] == 'CrossEntropy'):
-        criterion = nn.CrossEntropyLoss();
-        # Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html    
+class Initialization():
 
-    if (config['processor'] == 'cuda'):    
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); 
-        # determine which device to use (gpu or cpu)
-    else:
-        device = torch.device("cpu");
-    
-    fname = '_' + config['model'] + '_' + config['transform'] + '_' + config['loss'] \
-        + '_' + 'lr' + str(config['learning_rate'])
-    
-    tname = '\n'+ config['model'] + ' ' + config['transform'] + '\n' + \
-        config['loss'] + ' ' + 'learning rate : ' + str(config['learning_rate'])
+    def __init__(self, config):
+        # TODO: Some missing values are represented by '__'. You need to fill these up.
+        self.config=config
 
-    return batch_size, n_class, device, fname, tname, \
-        criterion, epochs, learning_rate, momentum, early_stop
+    def __call__(self):
+        train_dataset = TASDataset('tas500v1.1',self.config) 
+        val_dataset = TASDataset('tas500v1.1', self.config, eval=True, mode='val')
+        test_dataset = TASDataset('tas500v1.1', self.config, eval=True, mode='test')
 
-def Init(config):
-    # TODO: Some missing values are represented by '__'. You need to fill these up.
+        batch_size, n_class, learning_rate, momentum = self.config['batch_size'],\
+            self.config['n_class'], self.config['lr'], self.config['gamma'];
 
-    batch_size, n_class, device, __, __, __, __, learning_rate, momentum, __ = \
-        get_config_info(config);
+        if (self.config['processor'] == 'cuda'):    
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); 
+            # determine which device to use (gpu or cpu)
+        else:
+            device = torch.device("cpu");
 
-    train_dataset = TASDataset('tas500v1.1',config) 
-    val_dataset = TASDataset('tas500v1.1', config, eval=True, mode='val')
-    test_dataset = TASDataset('tas500v1.1', config, eval=True, mode='test')
+        train_loader = DataLoader(dataset=train_dataset, batch_size= batch_size, shuffle=True)
+        val_loader = DataLoader(dataset=val_dataset, batch_size= batch_size, shuffle=False)
+        test_loader = DataLoader(dataset=test_dataset, batch_size= batch_size, shuffle=False)
 
+        def init_weights(m):
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+                torch.nn.init.xavier_uniform_(m.weight.data)
+                torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
 
-    train_loader = DataLoader(dataset=train_dataset, batch_size= batch_size, shuffle=True)
-    val_loader = DataLoader(dataset=val_dataset, batch_size= batch_size, shuffle=False)
-    test_loader = DataLoader(dataset=test_dataset, batch_size= batch_size, shuffle=False)
-
-    def init_weights(m):
-        if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-            torch.nn.init.xavier_uniform_(m.weight.data)
-            torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
-
-    
-    if (config['model'] == 'baseline'):
-        cnn_model = FCN(n_class=n_class)
-        cnn_model.apply(init_weights)
+        self.CE_weight = None;
+        if (self.config['loss'] == 'weightedCrossEntropy'):
+            self.CE_weight = aug_weight(train_loader, n_class);
         
-    optimizer = optim.SGD(cnn_model.parameters(), lr=learning_rate, momentum=momentum)
-    # choose an optimizer
+        if (self.config['model'] == 'baseline'):
+            cnn_model = FCN(n_class=n_class)
+            cnn_model.apply(init_weights)
+            
+        optimizer = optim.SGD(cnn_model.parameters(), lr=learning_rate, momentum=momentum)
+        # choose an optimizer
 
-    cnn_model = cnn_model.to(device) #transfer the model to the device
+        cnn_model = cnn_model.to(device) #transfer the model to the device
 
-    return cnn_model, optimizer, train_loader, val_loader, test_loader
+        return cnn_model, optimizer, train_loader, val_loader, test_loader
+
+    def __getitem__(self, idx):
+
+        if (idx in {'n_class', 'batch_size', 'lr', 'epochs', 'early_stop_epoch', 'gamma'}):
+            return self.config[idx]
+
+        elif (idx == 'processor') :
+            if (self.config['processor'] == 'cuda'):    
+                device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); 
+                # determine which device to use (gpu or cpu)
+            else:
+                device = torch.device("cpu");
+            return device;
+
+        elif (idx == 'fname'):
+            fname = '_' + self.config['model'] + '_' + self.config['transform'] + '_' + self.config['loss'] \
+        + '_' + 'lr' + str(self.config['learning_rate']);
+            return fname;
+
+        elif (idx == 'tname'):
+            tname = '\n'+ self.config['model'] + ' ' + self.config['transform'] + '\n' + \
+                self.config['loss'] + ' ' + 'learning rate : ' + str(self.config['learning_rate']);
+            return tname
+        
+        elif (idx == 'loss'):
+            if (self.config['loss'] == 'CrossEntropy'):
+                criterion = nn.CrossEntropyLoss();
+            elif (self. config['loss'] == 'weightedCrossEntropy'):
+                criterion = nn.CrossEntropyLoss(weight = self.CE_weight)
+            return criterion;
+        
+        else:
+            return None;
 
 def rgb2int(arr):
     """

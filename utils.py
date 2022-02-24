@@ -51,3 +51,14 @@ def rotate(config, image, mask, degree = 30):
     new_mask = new_mask.numpy();
 
     return new_image, new_mask
+
+def aug_weight(train_loader, n_class, power=0.5):
+    fre = torch.zeros(n_class)
+    for __ , (__, label) in enumerate(train_loader):
+        for cls in range(n_class):
+            fre[cls] += torch.sum(label == cls);
+    
+    total_number = torch.sum(fre);
+
+    weight = torch.pow( total_number/(fre+1), power );
+    return weight
