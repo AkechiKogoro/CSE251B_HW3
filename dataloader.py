@@ -82,13 +82,13 @@ class Initialization():
             return self.device;
 
         elif (idx == 'fname'):
-            fname = '_' + self.config['model'] + '_' + self.config['transform'] + '_' + self.config['loss'] \
-        + '_' + 'lr' + str(self.config['lr']);
+            fname = '_' + self.config['model'] +  '_' + self.config['loss'] \
+                + self.config['transform'] + '_lr' + str(self.config['lr']) + '_epochs' + str(self.config['epochs']);
             return fname;
             
         elif (idx == 'tname'):
-            tname = '\n'+ self.config['model'] + ' ' + self.config['transform'] + '\n' + \
-                self.config['loss'] + ' ' + 'learning rate : ' + str(self.config['lr']);
+            tname = '\n'+ self.config['model'] + ' ' + self.config['loss'] + ' ' +  self.config['transform'] + '\n' \
+                 + 'learning rate : ' + str(self.config['lr']) + ' epochs : ' + str(self.config['epochs']);
             return tname
         
         elif (idx == 'loss'):
@@ -108,7 +108,7 @@ def rgb2int(arr):
     return arr[...,0]*(256**2)+arr[...,1]*256+arr[...,2]
 
 def rgb2vals(color, color2ind):
-   
+
     int_colors = rgb2int(color)
     int_keys = rgb2int(np.array(list(color2ind.keys()), dtype='uint8'))
     int_array = np.r_[int_colors.ravel(), int_keys]

@@ -1,0 +1,27 @@
+# This specifies the number of layers and number of hidden neurons in each layer.
+# Note that the first and the last elements of the list indicate the input and
+# output sizes
+
+n_class : 10
+
+batch_size : 10
+
+# The learning rate to be used for training.
+lr: 0.05
+
+# Number of epochs to train the model
+epochs: 150
+
+loss : 'CrossEntropy'
+
+# History for early stopping. Wait for this many epochs to check validation loss / accuracy.
+early_stop_epoch: 5
+
+model : 'baseline'
+
+processor : 'cuda'
+
+transform : 'NoTransform'
+
+# Value for the parameter 'gamma' in momentum
+gamma: 0.9

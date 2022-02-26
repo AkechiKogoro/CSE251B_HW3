@@ -10,7 +10,7 @@ import copy
 import yaml
 import torch
 from depict import *
-
+import os
 
 def train(Init, cnn_model, optimizer, train_loader, val_loader):
 
@@ -74,6 +74,11 @@ def train(Init, cnn_model, optimizer, train_loader, val_loader):
             torch.save(cnn_model.state_dict(), file_name);
 
     print(f"Best IoU in training is : {best_iou_score}\n")
+
+    info_name = './info/info' + fname +'.txt';
+    info_file = open(info_name, 'w');
+    print(f"Best IoU in training is : {best_iou_score}\n", file = info_file)
+    info_file.close();
             
     acc_pic_name = './img/acc' + fname + '.png';
     loss_pic_name = './img/loss' + fname + '.png';
@@ -122,15 +127,34 @@ def val(Init, epoch, cnn_model, val_loader):
 
     return np.mean(mean_iou_scores), np.mean(accuracy), np.mean(losses)
 
-def test():
+def test(Init, cnn_model, test_loader):
     #TODO: load the best model and complete the rest of the function for testing
+    fname = Init['fname'];
+    info_name = './info/info' + fname +'.txt';
+    info_file = open(info_name, 'a');
+
+    mean_iou_scores, accuracy, losses = \
+        val(Init, epoch = 'Test', cnn_model = cnn_model, val_loader = test_loader)
+
+    print(f"Loss at Test is {losses}", file = info_file)
+    print(f"IoU at Test is {mean_iou_scores}", file = info_file)
+    print(f"Pixel at Test is {accuracy}", file = info_file)
+
+    info_file.close();
     pass
 
 
 
 
 def main(file_name = 'config.yaml'):
+
     config = load_config("./", file_name)
+    if not os.path.exists('./img/'):
+        os.mkdir('./img/');
+    if not os.path.exists('./info/'):
+        os.mkdir('./info/');
+    if not os.path.exists('./model/'):
+        os.mkdir('./model/');
 
     Init=Initialization(config);
 
@@ -147,7 +171,7 @@ def main(file_name = 'config.yaml'):
     cnn_model.load_state_dict(torch.load(model_name))
     cnn_model.eval();
 
-    val(Init, epoch = 'Test', cnn_model = cnn_model, val_loader = test_loader)
+    test(Init, cnn_model, test_loader)
     
     # housekeeping
     gc.collect() 
