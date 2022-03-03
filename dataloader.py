@@ -55,10 +55,7 @@ class Initialization():
 
         self.CE_weight = None;
         if (self.config['loss'] == 'weightedCrossEntropy'):
-            self.CE_weight = aug_weight(train_loader, n_class);
-            #self.CE_weight = self.CE_weight.to(device);
-            #self.CE_weight = torch.stack([self.CE_weight] * n_class, 0);
-        
+            self.CE_weight = aug_weight(train_loader, n_class);    
         
         
         if (self.config['model'] == 'baseline'):
@@ -96,6 +93,8 @@ class Initialization():
                 criterion = nn.CrossEntropyLoss().to(self.device);
             elif (self. config['loss'] == 'weightedCrossEntropy'):
                 criterion = nn.CrossEntropyLoss(weight = self.CE_weight).to(self.device)
+            elif (self.config['loss'] == 'Diceloss'):
+                criterion = Diceloss;
             return criterion;
         
         else:

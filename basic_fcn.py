@@ -51,3 +51,9 @@ class FCN(nn.Module):
         score = self.classifier(out_decoder)                   
 
         return score  # size=(N, n_class, x.H/1, x.W/1)
+
+
+class Unet(nn.Module):
+    def __init__(init, n_class):
+        
+        pass

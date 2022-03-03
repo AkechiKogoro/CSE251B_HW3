@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.optim as optim
+import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 import random
 import copy
@@ -62,3 +63,34 @@ def aug_weight(train_loader, n_class, power=0.5):
 
     weight = torch.pow( total_number/(fre+1), power );
     return weight
+
+def Diceloss(output, target, n_class = 10):
+    # output size [N,C,H,W]
+    """new_output = torch.softmax(output, 1);
+    new_output = torch.moveaxis(new_output, 1, -1)[...,:-1];
+    new_target = F.one_hot(target, n_class)[...,:-1];
+    # for each class, calculate the loss for each image
+    # and then take the mean
+    image_loss = 1 - 2 * torch.sum(new_output * new_target,axis=[-1,-2])\
+        / torch.sum(new_output + new_target + 1e-3, axis=[-1,-2]);
+    loss = torch.mean(image_loss) *  (n_class - 1);"""
+
+    new_output = torch.softmax(output, 1);
+    loss = torch.tensor(float(1), requires_grad=True);
+    for i in range(n_class - 1):
+        temp_output = torch.squeeze(new_output[:,i,...], 1);
+        #print('temp_output size is ',temp_output.size())
+        temp_target = target == i;
+        #print('temp_target size is ',temp_target.size())
+        loss = loss - torch.mean(2 * temp_output * temp_target /(temp_output + temp_target + 1))\
+             / (n_class - 1);
+
+    """pred = torch.argmax(output, 1);
+    loss = torch.tensor(float(1), requires_grad=True);
+    for i in range(n_class - 1):
+        temp_output = pred == i;
+        temp_target = target == i;
+        loss = loss - torch.mean(2 * temp_output * temp_target /(temp_output + temp_target + 1))\
+             / (n_class - 1);"""
+
+    return loss;
