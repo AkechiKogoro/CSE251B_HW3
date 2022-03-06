@@ -75,6 +75,7 @@ def Diceloss(output, target, n_class = 10):
         / torch.sum(new_output + new_target + 1e-3, axis=[-1,-2]);
     loss = torch.mean(image_loss) *  (n_class - 1);"""
 
+    num = output.size()[0]; # batch size
     new_output = torch.softmax(output, 1);
     loss = torch.tensor(float(1), requires_grad=True);
     for i in range(n_class - 1):
@@ -82,8 +83,10 @@ def Diceloss(output, target, n_class = 10):
         #print('temp_output size is ',temp_output.size())
         temp_target = target == i;
         #print('temp_target size is ',temp_target.size())
-        loss = loss - torch.mean(2 * temp_output * temp_target /(temp_output + temp_target + 1))\
+        loss = loss - torch.mean(2 * temp_output * temp_target /(temp_output + temp_target + 1e-5))\
              / (n_class - 1);
+        
+    loss *= num;
 
     """pred = torch.argmax(output, 1);
     loss = torch.tensor(float(1), requires_grad=True);

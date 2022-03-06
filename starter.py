@@ -25,6 +25,10 @@ def train(Init, cnn_model, optimizer, train_loader, val_loader):
     pixel_list=[];
     loss_list=[];
 
+    if (Init['loss'] == 'Diceloss'):
+        #scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=1-6e-3)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.5)
+
     for epoch in range(epochs):
         ts = time.time(); print('\n');
         for iter, (inputs, labels) in enumerate(train_loader):
@@ -51,7 +55,9 @@ def train(Init, cnn_model, optimizer, train_loader, val_loader):
         
         print("Finish epoch {}, time elapsed {}".format(epoch, time.time() - ts))
         
-        
+        if (Init['loss'] == 'Diceloss'):
+            scheduler.step()
+
         current_miou_score, current_pixel_acc, current_loss = val(Init, epoch, cnn_model, val_loader)
         
         if (early_stop > 0):
@@ -59,6 +65,8 @@ def train(Init, cnn_model, optimizer, train_loader, val_loader):
                 num_increase += 1;
             else:
                 num_increase = 0;
+            
+            pre_iou_score = current_miou_score
             
             if (num_increase > early_stop):
                 print('\n'*3 + 'EARLY STOP !');
